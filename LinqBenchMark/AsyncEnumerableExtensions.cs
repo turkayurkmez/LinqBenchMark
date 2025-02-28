@@ -6,27 +6,26 @@ namespace LinqBenchMark
     public static class AsyncEnumerableExtensions
     {
         // IAsyncEnumerable<T> için bir tampon oluşturur ve belirli bir sayıda öğeyi gruplar
-        public static async IAsyncEnumerable<IEnumerable<T>> BufferAsync<T>(this IAsyncEnumerable<T> source, int count)
+        public static async IAsyncEnumerable<T> BufferAsync<T>(this IAsyncEnumerable<T> source, int count)
         {
-            var buffer = new List<T>(count); // Tamponu başlat
-
-            // Kaynağı asenkron olarak döngüye al
+            var buffer = new List<T>(count);
             await foreach (var item in source)
             {
-                buffer.Add(item); // Öğeyi tampona ekle
-                // Tampon belirli bir boyuta ulaştığında
+                buffer.Add(item);
                 if (buffer.Count == count)
                 {
-                    yield return buffer; // Tamponu döndür
-                    buffer = new List<T>(count); // Yeni bir tampon oluştur
+                    foreach (var i in buffer)
+                    {
+                        yield return i;
+                    }
+                    buffer.Clear();
                 }
             }
-
-            // Eğer tamponda kalan öğeler varsa
-            if (buffer.Count > 0)
+            foreach (var i in buffer)
             {
-                yield return buffer; // Kalan öğeleri döndür
+                yield return i;
             }
+
         }
     }
 }

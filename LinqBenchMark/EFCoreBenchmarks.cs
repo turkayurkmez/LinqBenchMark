@@ -1,7 +1,8 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
+using Microsoft.Diagnostics.Tracing.Parsers.Clr;
 using Microsoft.EntityFrameworkCore;
-//using System.Linq.Async;
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace LinqBenchMark
     {
         private TestDbContext _context;
 
-        private const int readCount = 100_000;
+        private const int readCount = 1_000_000;
 
 
 
@@ -39,7 +40,8 @@ namespace LinqBenchMark
                     Email = $"customer{i}@test.com",
                     IsActive = new Random().Next(5, 10) > 6,
                     Age = new Random().Next(10, 75),
-                    LastPurchasedDate = DateTime.Now.AddDays(-i)
+
+                    LastPurchasedDate = DateTime.Now.AddDays(-new Random().Next(1, 3650))
                 });
 
                 _context.Customers.AddRange(customers);
@@ -73,61 +75,93 @@ namespace LinqBenchMark
         }
 
 
+      
+        //public async Task WithOptimizedYield()
+        //{
+
+        //    //await foreach (var customer in Optimized())
+        //    //{
+        //    //    _ = customer.Name.Length;
+        //    //}
+        //}
+
+
+
         [Benchmark]
-        public void WithOptimizedYield()
+        public async Task Optimized()
         {
-            
-           
-            foreach (var customer in Optimized())
+            var customers = _context.Customers
+                                    .AsNoTracking()
+                                    .Where(c => c.Age > 35)
+                                    .OrderBy(c => c.LastPurchasedDate)
+                                    .Select(c => new CustomerDto
+                                    {
+                                        Id = c.Id,
+                                        Name = c.Name
+                                    })
+                                    .AsAsyncEnumerable();
+
+            await foreach (var customer in customers)
             {
-                _ = customer.Name.Length;
+               _ = customer.Name.Length;
+              
             }
+
+
         }
 
 
-
-      
-        public IEnumerable<CustomerDto> Optimized()
+        [Benchmark]
+        public async Task WithBufferAsync()
         {
-            foreach (var customer in _context.Customers
+            const int bufferCount = 100;
+            await foreach (var batch in _context.Customers
                                                 .AsNoTracking()
                                                 .Where(c => c.Age > 35)
                                                 .OrderBy(c => c.LastPurchasedDate)
-                                                .Select(c => new CustomerDto
-                                                {
-                                                    Id = c.Id,
-                                                    Name = c.Name
-                                                }))
+                                                .Select(c => new CustomerDto { Id = c.Id, Name = c.Name })
+                                                .AsAsyncEnumerable()
+                                                .Buffer(bufferCount))
             {
-                yield return customer;
+                foreach (var customer in batch)
+                {
+                    _ = customer.Name.Length;
+                }
             }
+
         }
 
+        //private async Task<IEnumerable<CustomerDto>> withBufferAsync()
+        //{
+        //    var result = new List<CustomerDto>();
+        //    const int bufferCount = 100;
+
+        //    await foreach (var batch in _context.Customers
+        //          .AsNoTracking()
+        //          .Where(c => c.Age > 35)
+        //          .OrderBy(c => c.LastPurchasedDate)
+        //          .Select(c => new CustomerDto { Id = c.Id, Name = c.Name })
+        //          .AsAsyncEnumerable()
+        //          .Buffer(bufferCount))
+        //    {
+        //        result.AddRange(batch);
+
+
+
+        //    }
+
+        //    return result;
+
+
+
+
+        //}
 
         [Benchmark]
-        public async Task withBufferAsync()
+        public async Task WithKeySetPagination()
         {
             const int pageSize = 100;
             var result = new List<CustomerDto>();
-            await foreach (var batch in _context.Customers
-                .AsNoTracking()
-                .Where(c => c.Age>35)
-                .OrderBy(c => c.LastPurchasedDate)
-                .Select(c => new CustomerDto { Id = c.Id, Name = c.Name })
-                .AsAsyncEnumerable()                
-                .BufferAsync(pageSize))
-            {
-                result.AddRange(batch);
-            }
-
-
-        }
-
-        [Benchmark]
-        public async Task WithSkipTake()
-        {
-            const int pageSize = 100;
-            var result = new List<CustomerDto>();          
             int lastId = 0;
             while (true)
             {
@@ -141,12 +175,17 @@ namespace LinqBenchMark
                         Id = c.Id,
                         Name = c.Name
                     }).ToListAsync();
-                   
+
 
                 if (!batch.Any())
                     break;
 
-                result.AddRange(batch);
+                foreach (var customer in batch)
+                {
+                    _ = customer.Name.Length;
+                    // Gerçek senaryoda burada veri işleme yapılırdı
+                    // Örn: processCustomer(customer);
+                }
                 lastId = batch.Last().Id;
             }
         }
