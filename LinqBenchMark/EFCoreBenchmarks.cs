@@ -77,8 +77,8 @@ namespace LinqBenchMark
         public void WithOptimizedYield()
         {
             
-            var result = Optimized();
-            foreach (var customer in result)
+           
+            foreach (var customer in Optimized())
             {
                 _ = customer.Name.Length;
             }
@@ -90,15 +90,14 @@ namespace LinqBenchMark
         public IEnumerable<CustomerDto> Optimized()
         {
             foreach (var customer in _context.Customers
-                                                    .AsNoTracking()
-                                                    .Where(c => c.Age > 35)
-                                                    .OrderBy(c => c.LastPurchasedDate)
-                                                    .Select(c => new CustomerDto
-                                                    {
-                                                        Id = c.Id,
-                                                        Name = c.Name
-                                                    })
-                                                    )
+                                                .AsNoTracking()
+                                                .Where(c => c.Age > 35)
+                                                .OrderBy(c => c.LastPurchasedDate)
+                                                .Select(c => new CustomerDto
+                                                {
+                                                    Id = c.Id,
+                                                    Name = c.Name
+                                                }))
             {
                 yield return customer;
             }
@@ -128,8 +127,7 @@ namespace LinqBenchMark
         public async Task WithSkipTake()
         {
             const int pageSize = 100;
-            var result = new List<CustomerDto>();
-            //int skip = 0;
+            var result = new List<CustomerDto>();          
             int lastId = 0;
             while (true)
             {
