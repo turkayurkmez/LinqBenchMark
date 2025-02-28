@@ -76,14 +76,7 @@ namespace LinqBenchMark
 
 
       
-        //public async Task WithOptimizedYield()
-        //{
-
-        //    //await foreach (var customer in Optimized())
-        //    //{
-        //    //    _ = customer.Name.Length;
-        //    //}
-        //}
+     
 
 
 
@@ -131,31 +124,11 @@ namespace LinqBenchMark
 
         }
 
-        //private async Task<IEnumerable<CustomerDto>> withBufferAsync()
-        //{
-        //    var result = new List<CustomerDto>();
-        //    const int bufferCount = 100;
-
-        //    await foreach (var batch in _context.Customers
-        //          .AsNoTracking()
-        //          .Where(c => c.Age > 35)
-        //          .OrderBy(c => c.LastPurchasedDate)
-        //          .Select(c => new CustomerDto { Id = c.Id, Name = c.Name })
-        //          .AsAsyncEnumerable()
-        //          .Buffer(bufferCount))
-        //    {
-        //        result.AddRange(batch);
-
-
-
-        //    }
-
-        //    return result;
+       
 
 
 
 
-        //}
 
         [Benchmark]
         public async Task WithKeySetPagination()
