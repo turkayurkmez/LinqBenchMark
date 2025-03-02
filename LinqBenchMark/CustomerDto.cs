@@ -6,11 +6,6 @@ using System.Threading.Tasks;
 
 namespace LinqBenchMark
 {
-    public class CustomerDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Email { get; set; }
-      
-    }
+    public record CustomerDto(int Id, string Name,  DateTime LastPurchasedDate);
+   
 }
